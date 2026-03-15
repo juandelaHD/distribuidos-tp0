@@ -48,6 +48,30 @@ De esta forma, los contenedores acceden directamente a los archivos de configura
 
 > **Instrucciones:** [README.md](README.md#ejercicio-n3)
 
+Se implementó el script de validación del "echo server" para verificar que el servidor responde correctamente a los mensajes enviados por los clientes. El script utiliza `nc` (netcat) dentro de un contenedor [Alpine](https://hub.docker.com/_/alpine) (una imagen ligera de Linux) para enviar un mensaje al servidor y verificar que la respuesta sea la esperada.
+
+Cómo ejecutarlo:
+
+1. Dar permisos al script:
+
+```
+chmod +x validar-echo-server.sh
+```
+
+2. Ejecutar la validación desde la terminal:
+
+```
+./validar-echo-server.sh
+```
+
+Resultado esperado:
+
+```
+action: test_echo_server | result: success
+```
+
+> Nota: Asegúrese de que los containers estén corriendo antes de ejecutar la validación.
+
 ## Ejercicio 4
 
 > **Instrucciones:** [README.md](README.md#ejercicio-n4)
