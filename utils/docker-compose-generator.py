@@ -12,9 +12,10 @@ services:
     entrypoint: python3 /main.py
     environment:
       PYTHONUNBUFFERED: 1
-      LOGGING_LEVEL: DEBUG
     networks:
       - testing_net
+    volumes:
+      - ./server/config.ini:/config.ini
 """
 
 CLIENT_TEMPLATE = """
@@ -24,11 +25,12 @@ CLIENT_TEMPLATE = """
     entrypoint: /client
     environment:
       CLI_ID: {n}
-      CLI_LOG_LEVEL: DEBUG
     networks:
       - testing_net
     depends_on:
       - server
+    volumes:
+      - ./client/config.yaml:/config.yaml
 """
 
 COMPOSE_NETWORK = """
