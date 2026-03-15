@@ -1,6 +1,6 @@
 import socket
 import logging
-
+import signal
 
 class Server:
     def __init__(self, port, listen_backlog):
@@ -8,6 +8,8 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        self._running = True
+        self._client_sock = None
 
     def run(self):
         """
@@ -17,12 +19,22 @@ class Server:
         communication with a client. After client with communucation
         finishes, servers starts to accept new connections again
         """
+        
+        signal.signal(signal.SIGTERM, self.__signal_handler)
 
-        # TODO: Modify this program to handle signal to graceful shutdown
-        # the server
-        while True:
-            client_sock = self.__accept_new_connection()
-            self.__handle_client_connection(client_sock)
+        while self._running:
+            try:
+                client_sock = self.__accept_new_connection()
+                self.__handle_client_connection(client_sock)
+            except OSError as e:
+                if self._running:
+                    logging.error(f"action: server_loop | result: fail | error: {e}")
+                return
+            except Exception as e:
+                logging.error(f"action: server_loop | result: fail | error: {e}")
+                return
+            
+        logging.info('action: shutdown_server | result: success')
 
     def __handle_client_connection(self, client_sock):
         """
@@ -32,6 +44,7 @@ class Server:
         client socket will also be closed
         """
         try:
+            self._client_sock = client_sock
             # TODO: Modify the receive to avoid short-reads
             msg = client_sock.recv(1024).rstrip().decode('utf-8')
             addr = client_sock.getpeername()
@@ -39,9 +52,10 @@ class Server:
             # TODO: Modify the send to avoid short-writes
             client_sock.send("{}\n".format(msg).encode('utf-8'))
         except OSError as e:
-            logging.error("action: receive_message | result: fail | error: {e}")
+            logging.error(f"action: receive_message | result: fail | error: {e}")
         finally:
             client_sock.close()
+            self._client_sock = None
 
     def __accept_new_connection(self):
         """
@@ -56,3 +70,16 @@ class Server:
         c, addr = self._server_socket.accept()
         logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
         return c
+
+    def __signal_handler(self, signum, frame):
+        """
+        Handle SIGTERM signal
+
+        When SIGTERM signal is received, the server socket is shutdown and closed.
+        """
+        logging.info('action: shutdown_server | result: in_progress')
+        self._running = False
+        if self._client_sock:
+            self._client_sock.close()
+        self._server_socket.shutdown(socket.SHUT_RDWR)
+        self._server_socket.close()

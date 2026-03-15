@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/op/go-logging"
@@ -55,6 +57,24 @@ func InitConfig() (*viper.Viper, error) {
 
 	return v, nil
 }
+
+// handleSignals Handle SIGINT and SIGTERM signals. When those signals are received, 
+// the client connection is closed and the program is shutdown
+func handleSignals(client *common.Client) {
+    signalChannel := make(chan os.Signal, 1)
+    signal.Notify(signalChannel, syscall.SIGTERM)
+    <-signalChannel
+	signal.Stop(signalChannel)
+    Exit(client)
+}
+
+// Exit Closes the client connection and shutdown the program with exit code 0
+func Exit(client *common.Client) {
+	client.Close()
+	log.Infof("action: shutdown_client | result: success")
+	os.Exit(0)
+}
+
 
 // InitLogger Receives the log level to be set in go-logging as a string. This method
 // parses the string and set the level to the logger. If the level string is not
@@ -111,5 +131,7 @@ func main() {
 	}
 
 	client := common.NewClient(clientConfig)
+	go handleSignals(client)
 	client.StartClientLoop()
 }
+
