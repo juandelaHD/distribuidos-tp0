@@ -6,40 +6,60 @@ Este documento presenta la resolución de los ejercicios propuestos en el TP0 de
 
 ## Ejercicio 1
 
-- **Instrucciones:** [README.md](README.md#ejercicio-n1)
-- [*Haz click acá para ver el commit de la solución*](<commit_url>)
+> **Instrucciones:** [README.md](README.md#ejercicio-n1)
+
+Se incorporó un **generador automático de configuraciones de Docker Compose**. Este generador permite crear dinámicamente un archivo `docker-compose` con:
+
+* Un **server**
+* **N instancias de clientes** (`client1`, `client2`, ..., `clientN`)
+
+### Uso del generador de Docker Compose
+
+1. Dar permisos de ejecución al script:
+
+```bash
+chmod +x generar-compose.sh
+```
+
+2. Generar el archivo `docker-compose` indicando:
+
+- El **nombre del archivo de salida**
+- La **cantidad de clientes a generar**
+
+```bash
+./generar-compose.sh <nombre_archivo> <cantidad_clientes>
+```
+
+3. Levantar los contenedores con Docker Compose:
+
+```bash
+docker compose -f <nombre_archivo> up
+```
 
 ## Ejercicio 2
 
-- **Instrucciones:** [README.md](README.md#ejercicio-n2)
-- [*Haz click acá para ver el commit de la solución*](<commit_url>)
+> **Instrucciones:** [README.md](README.md#ejercicio-n2)
 
 ## Ejercicio 3
 
-- **Instrucciones:** [README.md](README.md#ejercicio-n3)
-- [*Haz click acá para ver el commit de la solución*](<commit_url>)
+> **Instrucciones:** [README.md](README.md#ejercicio-n3)
 
 ## Ejercicio 4
 
-- **Instrucciones:** [README.md](README.md#ejercicio-n4)
-- [*Haz click acá para ver el commit de la solución*](<commit_url>)
+> **Instrucciones:** [README.md](README.md#ejercicio-n4)
 
 ## Ejercicio 5
 
-- **Instrucciones:** [README.md](README.md#ejercicio-n5)
-- [*Haz click acá para ver el commit de la solución*](<commit_url>)
+> **Instrucciones:** [README.md](README.md#ejercicio-n5)
 
 ## Ejercicio 6
 
-- **Instrucciones:** [README.md](README.md#ejercicio-n6)
-- [*Haz click acá para ver el commit de la solución*](<commit_url>)
+> **Instrucciones:** [README.md](README.md#ejercicio-n6)
 
 ## Ejercicio 7
 
-- **Instrucciones:** [README.md](README.md#ejercicio-n7)
-- [*Haz click acá para ver el commit de la solución*](<commit_url>)
+> **Instrucciones:** [README.md](README.md#ejercicio-n7)
 
 ## Ejercicio 8
 
-- **Instrucciones:** [README.md](README.md#ejercicio-n8)
-- [*Haz click acá para ver el commit de la solución*](<commit_url>)
+> **Instrucciones:** [README.md](README.md#ejercicio-n8)
