@@ -40,6 +40,10 @@ docker compose -f <nombre_archivo> up
 
 > **Instrucciones:** [README.md](README.md#ejercicio-n2)
 
+Se montaron los archivos de configuración del servidor y del cliente (server/config.ini y client/config.yaml) como volúmenes en los contenedores mediante [bind mounts](https://docs.docker.com/engine/storage/bind-mounts/).
+
+De esta forma, los contenedores acceden directamente a los archivos de configuración ubicados en el sistema de archivos del host en tiempo de ejecución. Esto permite modificar la configuración sin reconstruir las imágenes, ya que los cambios en los archivos montados se reflejan inmediatamente dentro de los contenedores.
+
 ## Ejercicio 3
 
 > **Instrucciones:** [README.md](README.md#ejercicio-n3)
