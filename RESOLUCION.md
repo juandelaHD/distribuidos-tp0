@@ -76,6 +76,13 @@ action: test_echo_server | result: success
 
 > **Instrucciones:** [README.md](README.md#ejercicio-n4)
 
+Para implementar el *graceful shutdown* primero se identificaron los recursos que deben cerrarse de forma ordenada: el socket del servidor y las conexiones activas del cliente.
+
+En el servidor, se agregó un handler para SIGTERM que invoca shutdown() y close() sobre el socket del servidor y registra el evento de apagado.
+En el cliente, se incorporó la captura de SIGTERM, que ejecuta Close() sobre la conexión, registra el shutdown y finaliza el proceso.
+
+De esta manera, tanto el servidor como los clientes liberan correctamente los sockets antes de terminar, evitando dejar recursos abiertos o conexiones colgantes.
+
 ## Ejercicio 5
 
 > **Instrucciones:** [README.md](README.md#ejercicio-n5)
