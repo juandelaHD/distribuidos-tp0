@@ -1,4 +1,5 @@
 name: tp0
+
 services:
   server:
     container_name: server
@@ -19,6 +20,12 @@ services:
     environment:
       - CLI_ID=1
       - CLI_LOG_LEVEL=DEBUG
+      - AGENCY=1
+      - FIRST_NAME=Santiago Lionel
+      - LAST_NAME=Lorca
+      - DOCUMENT=30904465
+      - BIRTHDATE=1999-03-17
+      - NUMBER=7574
     networks:
       - testing_net
     depends_on:

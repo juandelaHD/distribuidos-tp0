@@ -11,7 +11,8 @@ services:
     image: server:latest
     entrypoint: python3 /main.py
     environment:
-      PYTHONUNBUFFERED: 1
+      - PYTHONUNBUFFERED=1
+      - LOGGING_LEVEL=DEBUG
     networks:
       - testing_net
     volumes:
@@ -24,7 +25,13 @@ CLIENT_TEMPLATE = """
     image: client:latest
     entrypoint: /client
     environment:
-      CLI_ID: {n}
+      - CLI_ID={n}
+      - AGENCY={n}
+      - FIRST_NAME=Santiago Lionel
+      - LAST_NAME=Lorca
+      - DOCUMENT=3090446{n}
+      - BIRTHDATE=1999-03-17
+      - NUMBER=7574
     networks:
       - testing_net
     depends_on:
