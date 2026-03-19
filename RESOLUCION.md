@@ -87,6 +87,14 @@ De esta manera, tanto el servidor como los clientes liberan correctamente los so
 
 > **Instrucciones:** [README.md](README.md#ejercicio-n5)
 
+Para el Ejercicio 5 reorganicé la solución pensando primero en qué datos viajan en cada apuesta y en qué orden debían transmitirse para que cliente y servidor interpretaran la misma estructura, y a partir de eso definí un protocolo binario explícito con campos de tamaño fijo y variable delimitados, incluyendo reglas de longitud y validaciones de formato para evitar ambigüedades. 
+
+De esta forma, cada apuesta se codifica como la secuencia: agency(1 byte) | len_first_name(1 byte) | first_name(N bytes) | len_last_name(1 byte) | last_name(M bytes) | document(4 bytes) | birthdate(4 bytes) | number(2 bytes), donde los campos de longitud variable se interpretan usando sus prefijos de tamaño (N = valor de len_first_name y M = valor de len_last_name). El campo birthdate se serializa en formato binario como year(2 bytes, big-endian) | month(1 byte) | day(1 byte). En lugar de usar texto ASCII, lo trabajé directo con el formato binario, lo que me permitió optimizar un poco más el tamaño del payload con un formato más compacto y estructurado.
+
+Luego implementé la serialización y deserialización de ambos lados, de modo que cada mensaje se transforme de datos de la lógica de negocio a bytes y nuevamente a datos sin pérdida de información.
+
+Busqué separar el modelo de dominio y la lógica de negocio de la capa de transporte, manteniendo la construcción/validación de datos en archivos de dominio y dejando en la capa de comunicación únicamente el empaquetado, envío, recepción e interpretación del protocolo. Finalmente, para el uso correcto de sockets, contemplé lecturas y escrituras parciales con un esquema de envío/recibo total de bytes esperados, manejo de errores de conexión y validaciones de integridad del payload, garantizando que la confirmación de recepción sea consistente con el estado real del procesamiento.
+
 ## Ejercicio 6
 
 > **Instrucciones:** [README.md](README.md#ejercicio-n6)
