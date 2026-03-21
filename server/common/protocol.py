@@ -51,22 +51,14 @@ def send_answer(socket, success):
 
 
 """
-Send the list of winning document numbers to each agency's open socket and close them.
-finished_clients: dict mapping agency (int) -> socket
-winners: list of (agency, document) tuples
+Send the list of winning document numbers to the client socket.
+winners: list of document numbers (int) for this agency.
 """
-def send_results(finished_clients, winners):
-    winners_by_agency = {}
-    for agency, doc in winners:
-        winners_by_agency.setdefault(int(agency), []).append(doc)
-
-    for agency, sock in finished_clients.items():
-        agency_winners = winners_by_agency.get(int(agency), [])
-        data = struct.pack('!H', len(agency_winners))
-        for doc in agency_winners:
-            data += struct.pack('!I', doc)
-        _send_all(sock, data)
-        sock.close()
+def send_results(socket, winners):
+    data = struct.pack('!H', len(winners))
+    for doc in winners:
+        data += struct.pack('!I', doc)
+    _send_all(socket, data)
 
 
 """Receive a length-prefixed string (1-byte length + content)."""
