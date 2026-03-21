@@ -117,6 +117,14 @@ Si el lector del CSV falla en el nivel de parseo (estructura malformada del arch
 
 > **Instrucciones:** [README.md](README.md#ejercicio-n7)
 
+Se extendió el sistema para que, una vez enviadas todas las apuestas, el servidor corra la lotería cuando todos los clientes hayan notificado, y finalmente devuelva a cada cliente sus ganadores.
+
+Se reutilizó el formato de batch existente para indicar la finalización. Se envía un mensaje con `N_BETS = 0` seguido del número de agencia. De esta forma no se agrega ningún byte extra y el servidor lo distingue como "fin de apuestas" al recibir un batch con cantidad de apuestas igual a cero. 
+
+Para este ejercicio el servidor es secuencial, ya que atiende un cliente a la vez. Cuando un cliente envía su señal de finalización, el servidor almacena su socket abierto en un diccionario `finished_clients` (agencia → socket) y pasa a atender al siguiente cliente. Cuando todos los clientes esperados (`TOTAL_AGENCIES`) han notificado su finalización, el servidor corre la lotería, agrupa los ganadores por agencia y envía a cada socket almacenado la lista de DNIs ganadores.
+
+El formato de respuesta es: `N_WINNERS (2 bytes, big-endian) | DNI_1 (4 bytes, big-endian) | ... | DNI_N`.
+
 ## Ejercicio 8
 
 > **Instrucciones:** [README.md](README.md#ejercicio-n8)
