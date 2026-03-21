@@ -99,6 +99,20 @@ Busqué separar el modelo de dominio y la lógica de negocio de la capa de trans
 
 > **Instrucciones:** [README.md](README.md#ejercicio-n6)
 
+El cliente lee las apuestas de un CSV en batches de tamaño configurable y cada batch se envía como un único mensaje lógico al servidor con el siguiente formato:
+
+```
+N_BETS (2 bytes, big-endian) | AGENCY (1 byte) | BET_1 | BET_2 | ... | BET_n
+```
+
+Donde cada BET_i sigue el formato definido en el ejercicio anterior.
+
+Para evitar que el sistema operativo tenga que segmentar payloads grandes, el sender nunca hace una única escritura con todos los bytes. En cambio, acumula apuestas en un buffer y lo flushea por socket en escrituras de a lo sumo 8 KB (`MAX_CHUNK_SIZE`). Antes de agregar la siguiente apuesta al buffer, se verifica que el tamaño del buffer acumulado más el tamaño serializado de la siguiente apuesta no supere el límite; si lo supera, se flushea primero el buffer acumulado y luego se agrega la apuesta en el próximo chunk. De esta forma, el servidor recibe los datos en el orden correcto y los rearma, leyendo exactamente los bytes necesarios para cada apuesta.
+
+Además, la metadata de cantidad de bets y agencia se envía una sola vez por batch, antes de los datos. El servidor lee la cantidad de apuestas esperadas y luego responde con un único `ACK` para todo el batch.
+
+Si el lector del CSV falla en el nivel de parseo (estructura malformada del archivo), el procesamiento se detiene con error e informa al cliente. Sin embargo, si una fila es leída exitosamente pero tiene campos inválidos (documento no numérico, fecha con formato incorrecto, cantidad de campos incorrecta), esa fila se descarta con un log de advertencia y se continúa con la siguiente. De esta forma, el sistema es robusto a datos "sucios" sin interrumpir el procesamiento completo y garantiza que los datos que llegan al servidor cumplen con el formato esperado.
+
 ## Ejercicio 7
 
 > **Instrucciones:** [README.md](README.md#ejercicio-n7)

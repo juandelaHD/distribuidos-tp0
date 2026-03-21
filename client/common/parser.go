@@ -13,6 +13,12 @@ const (
 	DOCUMENT_BITS = 32
 	NUMBER_BITS   = 16
 	DECIMAL_BASE  = 10
+	BET_FIELDS_COUNT  = 5
+	IDX_FIRST_NAME    = 0
+	IDX_LAST_NAME     = 1
+	IDX_DOCUMENT      = 2
+	IDX_BIRTHDATE     = 3
+	IDX_BET_NUMBER    = 4
 )
 
 // NextBatch reads up to batchSize bets from the CSV. Returns an empty slice when finished.
@@ -31,8 +37,8 @@ func (r *BetReader) NextBatch() ([]Bet, error) {
 		if err != nil {
 			return nil, fmt.Errorf("reading CSV: %w", err)
 		}
-		if len(record) < 5 {
-			log.Warningf("action: parse_bet | result: skip | row: %v | error: expected 5 fields, got %d", record, len(record))
+		if len(record) < BET_FIELDS_COUNT {
+			log.Warningf("action: parse_bet | result: skip | row: %v | error: expected %d fields, got %d", record, BET_FIELDS_COUNT, len(record))
 			continue
 		}
 		bet, err := parseBetRecord(record)
@@ -88,22 +94,22 @@ func ParseAgency(id string) (uint8, error) {
 }
 
 func parseBetRecord(record []string) (Bet, error) {
-	firstName := record[0]
-	lastName := record[1]
+	firstName := record[IDX_FIRST_NAME]
+	lastName := record[IDX_LAST_NAME]
 
-	document, err := strconv.ParseUint(record[2], DECIMAL_BASE, DOCUMENT_BITS)
+	document, err := strconv.ParseUint(record[IDX_DOCUMENT], DECIMAL_BASE, DOCUMENT_BITS)
 	if err != nil {
-		return Bet{}, fmt.Errorf("invalid document %q: %w", record[2], err)
+		return Bet{}, fmt.Errorf("invalid document %q: %w", record[IDX_DOCUMENT], err)
 	}
 
-	birthDate := record[3]
+	birthDate := record[IDX_BIRTHDATE]
 	if _, err := time.Parse(birthdateLayout, birthDate); err != nil {
 		return Bet{}, fmt.Errorf("invalid birthdate %q: expected YYYY-MM-DD", birthDate)
 	}
 
-	number, err := strconv.ParseUint(record[4], DECIMAL_BASE, NUMBER_BITS)
+	number, err := strconv.ParseUint(record[IDX_BET_NUMBER], DECIMAL_BASE, NUMBER_BITS)
 	if err != nil {
-		return Bet{}, fmt.Errorf("invalid number %q: %w", record[4], err)
+		return Bet{}, fmt.Errorf("invalid number %q: %w", record[IDX_BET_NUMBER], err)
 	}
 
 	return NewBet(firstName, lastName, uint32(document), birthDate, uint16(number)), nil
