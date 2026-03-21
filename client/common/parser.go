@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"time"
@@ -14,11 +15,43 @@ const (
 	DECIMAL_BASE  = 10
 )
 
-func NewBetFromEnv() (Bet, error) {
-	agency, err := parseEnvUint("AGENCY", AGENCY_BITS)
-	if err != nil {
-		return Bet{}, err
+// NextBatch reads up to batchSize bets from the CSV. Returns an empty slice when finished.
+// Malformed rows are skipped with a warning log.
+func (r *BetReader) NextBatch() ([]Bet, error) {
+	if r.Finished {
+		return nil, nil
 	}
+	var batch []Bet
+	for len(batch) < r.BatchSize {
+		record, err := r.Reader.Read()
+		if err == io.EOF {
+			r.Finished = true
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("reading CSV: %w", err)
+		}
+		if len(record) < 5 {
+			log.Warningf("action: parse_bet | result: skip | row: %v | error: expected 5 fields, got %d", record, len(record))
+			continue
+		}
+		bet, err := parseBetRecord(record)
+		if err != nil {
+			log.Warningf("action: parse_bet | result: skip | row: %v | error: %v", record, err)
+			continue
+		}
+		batch = append(batch, bet)
+	}
+	return batch, nil
+}
+
+// Close releases the underlying file handle.
+func (r *BetReader) Close() error {
+	return r.File.Close()
+}
+
+// NewBetFromEnv builds a Bet from environment variables.
+func NewBetFromEnv() (Bet, error) {
 	firstName, err := readRequiredEnv("FIRST_NAME")
 	if err != nil {
 		return Bet{}, err
@@ -31,19 +64,49 @@ func NewBetFromEnv() (Bet, error) {
 	if err != nil {
 		return Bet{}, err
 	}
-	birthdate, err := readRequiredEnv("BIRTHDATE")
+	birthDate, err := readRequiredEnv("BIRTHDATE")
 	if err != nil {
 		return Bet{}, err
 	}
-	if _, err := time.Parse(birthdateLayout, birthdate); err != nil {
-		return Bet{}, fmt.Errorf("invalid BIRTHDATE %q: expected YYYY-MM-DD with a valid calendar date", birthdate)
+	if _, err := time.Parse(birthdateLayout, birthDate); err != nil {
+		return Bet{}, fmt.Errorf("invalid BIRTHDATE %q: expected YYYY-MM-DD with a valid calendar date", birthDate)
 	}
 	number, err := parseEnvUint("NUMBER", NUMBER_BITS)
 	if err != nil {
 		return Bet{}, err
 	}
+	return NewBet(firstName, lastName, uint32(document), birthDate, uint16(number)), nil
+}
 
-	return NewBet(uint8(agency), firstName, lastName, uint32(document), birthdate, uint16(number)), nil
+// ParseAgency converts a client ID string to a uint8 agency ID.
+func ParseAgency(id string) (uint8, error) {
+	v, err := strconv.ParseUint(id, DECIMAL_BASE, AGENCY_BITS)
+	if err != nil {
+		return 0, fmt.Errorf("client ID %q is not a valid agency (expected 0-255): %w", id, err)
+	}
+	return uint8(v), nil
+}
+
+func parseBetRecord(record []string) (Bet, error) {
+	firstName := record[0]
+	lastName := record[1]
+
+	document, err := strconv.ParseUint(record[2], DECIMAL_BASE, DOCUMENT_BITS)
+	if err != nil {
+		return Bet{}, fmt.Errorf("invalid document %q: %w", record[2], err)
+	}
+
+	birthDate := record[3]
+	if _, err := time.Parse(birthdateLayout, birthDate); err != nil {
+		return Bet{}, fmt.Errorf("invalid birthdate %q: expected YYYY-MM-DD", birthDate)
+	}
+
+	number, err := strconv.ParseUint(record[4], DECIMAL_BASE, NUMBER_BITS)
+	if err != nil {
+		return Bet{}, fmt.Errorf("invalid number %q: %w", record[4], err)
+	}
+
+	return NewBet(firstName, lastName, uint32(document), birthDate, uint16(number)), nil
 }
 
 func readRequiredEnv(key string) (string, error) {

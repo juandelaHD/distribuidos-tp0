@@ -2,7 +2,7 @@ import socket
 import logging
 import signal
 
-from common.protocol import recv_bet, send_answer
+from common.protocol import recv_batch, send_answer
 from common.utils import store_bets
 
 class Server:
@@ -22,7 +22,7 @@ class Server:
         communication with a client. After client with communucation
         finishes, servers starts to accept new connections again
         """
-        
+
         signal.signal(signal.SIGTERM, self.__signal_handler)
 
         while self._running:
@@ -41,24 +41,35 @@ class Server:
 
     def __handle_client_connection(self, client_sock):
         """
-        Read message from a specific client socket and closes the socket
-
-        If a problem arises in the communication with the client, the
-        client socket will also be closed
+        Read batches of bets from a client socket and respond to each one.
+        Loops until the client closes the connection.
+        Each batch is processed atomically: all bets are stored or none are.
         """
         try:
-            bet = recv_bet(client_sock)
-            store_bets([bet])
-            logging.info(
-                f'action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}'
-            )
-            send_answer(client_sock, True)
-        except OSError as e:
-            logging.error(f"action: apuesta_almacenada | result: fail | error: {e}")
-            send_answer(client_sock, False)
+            while True:
+                bets = recv_batch(client_sock)
+                self.__process_batch(client_sock, bets)
+        except OSError:
+            pass  # client disconnected normally
+        except ValueError as e:
+            logging.error(f'action: apuesta_recibida | result: fail | error: {e}')
+            try:
+                send_answer(client_sock, False)
+            except OSError:
+                pass
         finally:
             client_sock.close()
             self._client_sock = None
+
+    def __process_batch(self, client_sock, bets):
+        n = len(bets)
+        try:
+            store_bets(bets)
+            logging.info(f'action: apuesta_recibida | result: success | cantidad: {n}')
+            send_answer(client_sock, True)
+        except Exception:
+            logging.error(f'action: apuesta_recibida | result: fail | cantidad: {n}')
+            send_answer(client_sock, False)
 
     def __accept_new_connection(self):
         """

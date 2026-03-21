@@ -6,10 +6,8 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/op/go-logging"
-	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/common"
@@ -36,8 +34,7 @@ func InitConfig() (*viper.Viper, error) {
 	// Add env variables supported
 	v.BindEnv("id")
 	v.BindEnv("server", "address")
-	v.BindEnv("loop", "period")
-	v.BindEnv("loop", "amount")
+	v.BindEnv("batch", "maxAmount")
 	v.BindEnv("log", "level")
 
 	// Try to read configuration from config file. If config file
@@ -49,23 +46,17 @@ func InitConfig() (*viper.Viper, error) {
 		fmt.Printf("Configuration could not be read from config file. Using env variables instead")
 	}
 
-	// Parse time.Duration variables and return an error if those variables cannot be parsed
-
-	if _, err := time.ParseDuration(v.GetString("loop.period")); err != nil {
-		return nil, errors.Wrapf(err, "Could not parse CLI_LOOP_PERIOD env var as time.Duration.")
-	}
-
 	return v, nil
 }
 
-// handleSignals Handle SIGINT and SIGTERM signals. When those signals are received, 
+// handleSignals Handle SIGINT and SIGTERM signals. When those signals are received,
 // the client connection is closed and the program is shutdown
 func handleSignals(client *common.Client) {
-    signalChannel := make(chan os.Signal, 1)
-    signal.Notify(signalChannel, syscall.SIGTERM)
-    <-signalChannel
+	signalChannel := make(chan os.Signal, 1)
+	signal.Notify(signalChannel, syscall.SIGTERM)
+	<-signalChannel
 	signal.Stop(signalChannel)
-    Exit(client)
+	Exit(client)
 }
 
 // Exit Closes the client connection and shutdown the program with exit code 0
@@ -74,7 +65,6 @@ func Exit(client *common.Client) {
 	log.Infof("action: shutdown_client | result: success")
 	os.Exit(0)
 }
-
 
 // InitLogger Receives the log level to be set in go-logging as a string. This method
 // parses the string and set the level to the logger. If the level string is not
@@ -101,11 +91,10 @@ func InitLogger(logLevel string) error {
 // PrintConfig Print all the configuration parameters of the program.
 // For debugging purposes only
 func PrintConfig(v *viper.Viper) {
-	log.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_amount: %v | loop_period: %v | log_level: %s",
+	log.Infof("action: config | result: success | client_id: %s | server_address: %s | batch_max_amount: %v | log_level: %s",
 		v.GetString("id"),
 		v.GetString("server.address"),
-		v.GetInt("loop.amount"),
-		v.GetDuration("loop.period"),
+		v.GetInt("batch.maxAmount"),
 		v.GetString("log.level"),
 	)
 }
@@ -124,14 +113,12 @@ func main() {
 	PrintConfig(v)
 
 	clientConfig := common.ClientConfig{
-		ServerAddress: v.GetString("server.address"),
-		ID:            v.GetString("id"),
-		LoopAmount:    v.GetInt("loop.amount"),
-		LoopPeriod:    v.GetDuration("loop.period"),
+		ServerAddress:  v.GetString("server.address"),
+		ID:             v.GetString("id"),
+		BatchMaxAmount: v.GetInt("batch.maxAmount"),
 	}
 
 	client := common.NewClient(clientConfig)
 	go handleSignals(client)
 	client.StartClientLoop()
 }
-
