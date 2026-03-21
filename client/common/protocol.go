@@ -16,6 +16,8 @@ const (
 	NUMBER_SIZE         = 2
 	ANSWER_SIZE         = 1
 	NUMBER_OF_BETS_SIZE = 2
+	WINNERS_COUNT_SIZE  = 2
+	WINNER_DNI_SIZE     = 4
 )
 
 const birthdateLayout = "2006-01-02" // Go's reference time for parsing dates
@@ -105,6 +107,34 @@ func appendBet(buf []byte, idx int, bet Bet) ([]byte, error) {
 	buf = append(buf, numBytes...)
 
 	return buf, nil
+}
+
+// SendDone notifies the server that this agency has finished sending all bets.
+// Wire format: N_BETS=0 (2, big-endian) | AGENCY (1)
+func SendDone(conn net.Conn, agency uint8) error {
+	buf := make([]byte, NUMBER_OF_BETS_SIZE+AGENCY_SIZE)
+	binary.BigEndian.PutUint16(buf[0:NUMBER_OF_BETS_SIZE], 0)
+	buf[NUMBER_OF_BETS_SIZE] = agency
+	return sendAll(conn, buf)
+}
+
+// ReceiveWinners reads the list of winning document numbers sent by the server.
+// Wire format: N_WINNERS (2, big-endian) | DNI_1 (4, big-endian) | ... | DNI_N
+func ReceiveWinners(conn net.Conn) ([]uint32, error) {
+	countBuf, err := recvAll(conn, WINNERS_COUNT_SIZE)
+	if err != nil {
+		return nil, err
+	}
+	count := binary.BigEndian.Uint16(countBuf)
+	winners := make([]uint32, count)
+	for i := range winners {
+		dniBuf, err := recvAll(conn, WINNER_DNI_SIZE)
+		if err != nil {
+			return nil, fmt.Errorf("receiving winner %d: %w", i, err)
+		}
+		winners[i] = binary.BigEndian.Uint32(dniBuf)
+	}
+	return winners, nil
 }
 
 // ReceiveAnswer reads the server's confirmation byte.

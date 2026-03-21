@@ -11,6 +11,8 @@ BIRTHDATE_SIZE = 4
 NUMBER_SIZE = 2
 NUMBER_OF_BETS_SIZE = 2
 ANSWER_SIZE = 1
+WINNERS_COUNT_SIZE = 2
+WINNER_DNI_SIZE = 4
 
 # Answer codes
 ANSWER_SUCCESS = 0
@@ -22,7 +24,7 @@ Receive a batch of Bets from the socket.
 Packet encoding: number_of_bets(2, big-endian) | agency(1) | BET1 | BET2 | ...
 BET encoding: len_fn(1) | first_name(N) | len_ln(1) | last_name(M) | document(4, big-endian) | birthdate(4) | number(2, big-endian)
 
-Returns a list of Bets.
+Returns (bets, agency). If number_of_bets is 0, bets is an empty list (done signal).
 Raises OSError if the connection is closed or a read fails.
 Raises ValueError if any bet contains invalid field values.
 """
@@ -39,13 +41,32 @@ def recv_batch(socket):
         number = struct.unpack('!H', _recv_all(socket, NUMBER_SIZE))[0]
         bets.append(parse_bet(agency, first_name, last_name, document, bd_bytes, number))
 
-    return bets
+    return bets, agency
 
 
 """Send a 1-byte result code to the client."""
 def send_answer(socket, success):
     code = ANSWER_SUCCESS if success else ANSWER_FAIL
     _send_all(socket, struct.pack('!B', code))
+
+
+"""
+Send the list of winning document numbers to each agency's open socket and close them.
+finished_clients: dict mapping agency (int) -> socket
+winners: list of (agency, document) tuples
+"""
+def send_results(finished_clients, winners):
+    winners_by_agency = {}
+    for agency, doc in winners:
+        winners_by_agency.setdefault(int(agency), []).append(doc)
+
+    for agency, sock in finished_clients.items():
+        agency_winners = winners_by_agency.get(int(agency), [])
+        data = struct.pack('!H', len(agency_winners))
+        for doc in agency_winners:
+            data += struct.pack('!I', doc)
+        _send_all(sock, data)
+        sock.close()
 
 
 """Receive a length-prefixed string (1-byte length + content)."""

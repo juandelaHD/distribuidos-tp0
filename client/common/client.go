@@ -47,7 +47,9 @@ func (c *Client) createClientSocket() error {
 	return nil
 }
 
-// StartClientLoop reads bets from the agency CSV file and sends them to the server in batches.
+// StartClientLoop reads bets from the agency CSV file and sends them to the server in batches
+// over a single persistent TCP connection. After all batches are sent, notifies the server
+// with a done signal and waits for the lottery winners list.
 func (c *Client) StartClientLoop() {
 	agency, err := ParseAgency(c.config.ID)
 	if err != nil {
@@ -98,7 +100,18 @@ func (c *Client) StartClientLoop() {
 		}
 	}
 
-	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+	if err := SendDone(c.conn, agency); err != nil {
+		log.Errorf("action: notify_done | result: fail | client_id: %v | error: %v", c.config.ID, err)
+		return
+	}
+
+	winners, err := ReceiveWinners(c.conn)
+	if err != nil {
+		log.Errorf("action: consulta_ganadores | result: fail | client_id: %v | error: %v", c.config.ID, err)
+		return
+	}
+
+	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %d", len(winners))
 }
 
 // Close Closes the client connection.

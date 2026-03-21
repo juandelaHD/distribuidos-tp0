@@ -13,6 +13,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - LOGGING_LEVEL=DEBUG
+      - TOTAL_AGENCIES={total_agencies}
     networks:
       - testing_net
     volumes:
@@ -51,7 +52,7 @@ networks:
 """
 
 def build_compose_yaml(clients):
-    yaml = COMPOSE_NAME + COMPOSE_SERVER
+    yaml = COMPOSE_NAME + COMPOSE_SERVER.format(total_agencies=clients)
     for i in range(1, clients + 1):
         yaml += CLIENT_TEMPLATE.format(n=i)
     yaml += COMPOSE_NETWORK
